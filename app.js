@@ -3,7 +3,7 @@
   'use strict';
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
   const $ = (id) => document.getElementById(id);
-  const DEFAULT_EMAIL = 'serveis2@multiserveispalamos.com';
+  const DEFAULT_EMAIL = 'serveis@hidropointbarcelona.com';
 
   const DOCS = {
     inter: { nombre: 'Hoja de encargo v2 (Inter Partner)', tpl: 'templates/inter.pdf', fich: 'hoja_encargo_inter', fn: 'fillInter', corto: 'Hoja Inter' },
@@ -16,9 +16,9 @@
   function nuevoD() {
     return { registro: '', expediente: '', compania: '', aseguradora: '', poliza: '', nombre: '', direccion: '', cp: '', poblacion: '', telefono: '', telefono2: '', nif: '',
       descripcion: '', emailCliente: '', fecha: '', horaIni: '', horaFin: '', realizados: '', pendientes: '', causa: '', pagoPor: '', provincia: '',
-      consentimiento: false, refSiniestro: '', firmaNombre: '', firmaDni: '', iva: ['NC', 'NC', 'NC'], sigCliente: null, sigPedro: null };
+      consentimiento: false, refSiniestro: '', firmaNombre: '', firmaDni: '', iva: ['NC', 'NC', 'NC'], sigCliente: null, sigPedro: null, lugar: '' };
   }
-  const S = { tipo: 'parte', incluir: false, fotos: [], files: [], tplCache: {}, hecho: {}, ajustes: {}, d: nuevoD(), docActual: 'parte', hotIdx: -1, zoom: false };
+  const S = { tipo: 'parte', extra: '', orden: null, fotos: [], files: [], tplCache: {}, hecho: {}, ajustes: {}, d: nuevoD(), docActual: 'parte', hotIdx: -1, zoom: false };
 
   /* ---------- ajustes guardados en el móvil ---------- */
   function cargarAjustes() { try { return JSON.parse(localStorage.getItem('hp_ajustes') || '{}'); } catch (e) { return {}; } }
@@ -36,14 +36,14 @@
   function set(k, v) { if (k.indexOf('iva:') === 0) S.d.iva[+k.slice(4)] = v; else S.d[k] = v; }
   function vacio(fl) {
     if (fl.kind === 'sig') return fl.k === 'sigPedro' ? !(S.d.sigPedro || S.ajustes.sig) : !S.d[fl.k];
-    if (fl.kind === 'check' || fl.kind === 'radio') return false;
+    if (fl.kind === 'check' || fl.kind === 'radio' || fl.kind === 'cruz') return false;
     return !String(get(fl.k) == null ? '' : get(fl.k)).trim();
   }
   const falta = (h) => h.f.some(fl => fl.req && vacio(fl));
   const faltaObligatorio = (h) => h.f.some(fl => fl.req === 'must' && vacio(fl));
 
   /* ---------- pasos ---------- */
-  function docsActivos() { return S.tipo === 'parte' ? ['parte'] : (S.incluir ? [S.tipo, 'parte'] : [S.tipo]); }
+  function docsActivos() { return S.extra && S.extra !== S.tipo ? [S.tipo, S.extra] : [S.tipo]; }
   function ir(n) {
     document.querySelectorAll('main > section').forEach(s => s.classList.toggle('on', s.id === 's' + n));
     document.querySelectorAll('#pasos button').forEach(b => { b.classList.toggle('on', b.dataset.p == n); b.classList.toggle('hecho', !!S.hecho[b.dataset.p] && b.dataset.p != n); });
@@ -94,7 +94,7 @@
 
   /* ---------- ajustes (modal) ---------- */
   function abrirAjustes() {
-    $('aNombre').value = S.ajustes.nombre || ''; $('aNif').value = S.ajustes.nif || ''; $('aCodigo').value = S.ajustes.codigo || '';
+    $('aNombre').value = S.ajustes.nombre || '';
     $('aLugar').value = S.ajustes.lugar || '';
     $('modalAjustes').classList.add('on');
     setTimeout(() => { padPedro.resize(); padPedro.set(S.ajustes.sig || null); }, 40);
@@ -105,7 +105,7 @@
     if (!$('aNombre').value.trim()) fallos.push('Escribe el nombre de Pedro.');
     if (!$('aLugar').value.trim()) fallos.push('Escribe la ciudad donde se firma.');
     if (fallos.length) return msg('msgAjustes', 'error', fallos);
-    S.ajustes = { nombre: $('aNombre').value.trim(), nif: $('aNif').value.trim(), codigo: $('aCodigo').value.trim(), lugar: $('aLugar').value.trim(), email: DEFAULT_EMAIL, sig };
+    S.ajustes = { nombre: $('aNombre').value.trim(), lugar: $('aLugar').value.trim(), email: DEFAULT_EMAIL, sig };
     guardarAjustes(S.ajustes); msg('msgAjustes', '', ''); $('modalAjustes').classList.remove('on');
     if ($('s2').classList.contains('on')) pedirRender(0);
   });
@@ -125,6 +125,7 @@
     msg('msgPdf', 'aviso', 'Leyendo la orden…');
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
+      const ordenFile = new File([buf.slice()], file.name || 'orden_de_trabajo.pdf', { type: 'application/pdf' });
       const doc = await pdfjsLib.getDocument({ data: buf }).promise;
       const pg = await doc.getPage(1), vp = pg.getViewport({ scale: 1 }), tc = await pg.getTextContent();
       const items = tc.items.map(i => ({ s: i.str, x: i.transform[4], y: vp.height - i.transform[5], w: i.width }));
@@ -133,7 +134,7 @@
       ['registro', 'expediente', 'compania', 'aseguradora', 'poliza', 'nombre', 'direccion', 'cp', 'poblacion', 'nif', 'descripcion'].forEach(k => { nd[k] = r[k] || ''; });
       nd.telefono = (r.telefonos || [])[0] || ''; nd.telefono2 = (r.telefonos || [])[1] || '';
       if (r.fechaServicio) { const m = r.fechaServicio.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) nd.fecha = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }
-      S.d = nd; ids1.forEach(k => { $(k).value = nd[k]; }); resumenCliente();
+      S.d = nd; S.orden = ordenFile; ids1.forEach(k => { $(k).value = nd[k]; }); resumenCliente();
       const falta1 = ['registro', 'expediente', 'nombre'].filter(k => !r[k]);
       if (falta1.length) msg('msgPdf', 'aviso', 'He leído la orden, pero no encuentro: ' + falta1.join(', ') + '. Complétalo a mano.');
       else msg('msgPdf', 'bien', `Orden leída: parte ${r.registro}, expediente ${r.expediente}.`);
@@ -151,9 +152,8 @@
     if (/inter/.test(t)) return 'inter';
     return 'parte';
   }
-  function cambiarTipo(k) { if (S.tipo === 'parte' && k !== 'parte') { S.incluir = false; $('incluirParte').checked = false; } S.tipo = k; pintarOpcionesDoc(); }
+  function cambiarTipo(k) { S.tipo = k; if (S.extra === k) S.extra = ''; pintarOpcionesDoc(); }
   function elegirTipoAuto() { cambiarTipo(tipoAuto()); }
-  $('incluirParte').addEventListener('change', () => { S.incluir = $('incluirParte').checked; });
 
   function pintarOpcionesDoc() {
     const c = $('opcionesDoc'); c.innerHTML = '';
@@ -165,8 +165,14 @@
       if (k === tipoAuto() && (S.d.compania || S.d.aseguradora)) { const sm = document.createElement('small'); sm.textContent = 'Sugerido por la compañía de la orden'; s.appendChild(sm); }
       l.append(i, s); c.appendChild(l);
     });
-    $('opParte').classList.toggle('oculto', S.tipo === 'parte');
-    $('incluirParte').checked = S.incluir;
+    const e = $('opcionesExtra'); e.innerHTML = '';
+    [''].concat(ORDEN.filter(k => k !== S.tipo)).forEach(k => {
+      const l = document.createElement('label'); l.className = 'opcion' + (S.extra === k ? ' sel' : '');
+      const i = document.createElement('input'); i.type = 'radio'; i.name = 'extra'; i.checked = S.extra === k;
+      i.addEventListener('change', () => { S.extra = k; pintarOpcionesDoc(); });
+      const s = document.createElement('span'); s.textContent = k ? DOCS[k].nombre : 'No, solo el documento de arriba';
+      l.append(i, s); e.appendChild(l);
+    });
   }
 
   $('to2').addEventListener('click', () => {
@@ -182,6 +188,7 @@
     if (!d.firmaDni) d.firmaDni = d.nif;
     if (!d.fecha) d.fecha = hoyIso();
     if (!S.ajustes.nombre) { abrirAjustes(); return; }
+    if (!d.lugar) d.lugar = S.ajustes.lugar || '';
     S.docActual = docsActivos()[0]; S.hecho[1] = true; ir(2);
   });
   function hoyIso() { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
@@ -201,7 +208,7 @@
   function datos() {
     return Object.assign({}, S.d, { iva: S.d.iva.slice(),
       sigPedro: S.d.sigPedro || S.ajustes.sig || null,
-      pedro: { nombre: S.ajustes.nombre || '', nif: S.ajustes.nif || '', codigo: S.ajustes.codigo || '', lugar: S.ajustes.lugar || '' } });
+      pedro: { nombre: S.ajustes.nombre || '', lugar: S.ajustes.lugar || '' } });
   }
 
   let rt = null, rendering = false, dirty = false;
@@ -228,6 +235,12 @@
     (HOTS[S.docActual] || []).forEach((h, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'hot' + (falta(h) ? ' falta' : '') + (i === S.hotIdx ? ' sel' : ''); b.setAttribute('aria-label', h.t);
       b.style.left = (h.x / S.pw * 100) + '%'; b.style.top = (h.y / S.ph * 100) + '%'; b.style.width = (h.w / S.pw * 100) + '%'; b.style.height = (h.h / S.ph * 100) + '%';
+      const fl0 = h.f[0];
+      if (fl0.kind === 'cruz') { // casilla SÍ/NO: un toque la marca, otro la desmarca
+        if (get(fl0.k) === fl0.val) b.classList.add('marcada');
+        b.addEventListener('click', () => { set(fl0.k, get(fl0.k) === fl0.val ? 'NC' : fl0.val); colocarHots(); pedirRender(0); });
+        c.appendChild(b); return;
+      }
       b.addEventListener('click', () => abrirEditor(i)); c.appendChild(b);
     });
   }
@@ -362,14 +375,14 @@
     L.push(`Cliente: ${d.nombre}${d.direccion ? ' - ' + d.direccion : ''}${d.cp || d.poblacion ? ', ' + [d.cp, d.poblacion].filter(Boolean).join(' ') : ''}`);
     L.push(''); L.push('Trabajo realizado: ' + d.realizados);
     if (d.pendientes) L.push('Pendiente: ' + d.pendientes);
-    L.push(''); L.push(`Se adjunta: ${docs.map(x => DOCS[x.k].nombre).join(', ')}, firmado por el cliente` + (S.fotos.length ? ` y ${S.fotos.length} foto${S.fotos.length === 1 ? '' : 's'} de la actuación.` : '.'));
+    L.push(''); L.push(`Se adjunta: ${S.orden ? 'la orden de trabajo, ' : ''}${docs.map(x => DOCS[x.k].nombre).join(', ')}, firmado por el cliente` + (S.fotos.length ? ` y ${S.fotos.length} foto${S.fotos.length === 1 ? '' : 's'} de la actuación.` : '.'));
     L.push(''); L.push('Un saludo,'); L.push(S.ajustes.nombre || 'Hidro Point Barcelona');
     return L.join('\n');
   }
   let generando = 0;
   async function prepararEnvio() {
     const turno = ++generando; msg('msg4', '', '');
-    $('para').value = DEFAULT_EMAIL;
+    if (!$('para').value.trim()) $('para').value = DEFAULT_EMAIL;
     $('vistas').innerHTML = '<p class="nota">Preparando…</p>'; $('bEnviar').disabled = true; $('fallback').innerHTML = '';
     const f = problemas();
     if (!S.ajustes.nombre) f.push('Faltan «Mis datos» (nombre de Pedro). Pulsa ⚙ arriba.');
@@ -377,6 +390,7 @@
     try {
       const g = await generar(); if (turno !== generando) return;
       S.files = g.salida.map(x => new File([x.bytes], x.nombre, { type: 'application/pdf' }));
+      if (S.orden) S.files.push(S.orden); // la orden de trabajo original, tal cual se recibió
       S.fotos.forEach((b, i) => S.files.push(new File([b], `${g.d.registro || 'parte'}_foto_${i + 1}.jpg`, { type: 'image/jpeg' })));
       $('asunto').textContent = asuntoDe(g.d); $('cuerpo').value = cuerpoDe(g.d, g.salida);
       $('resumenAdj').textContent = 'Se adjuntará: ' + S.files.map(x => x.name).join(', ');
@@ -416,7 +430,7 @@
   $('bNuevo').addEventListener('click', () => {
     if (!confirm('¿Empezar un parte nuevo? Se borrarán los datos de este.')) return;
     S.d = nuevoD(); ids1.forEach(k => { $(k).value = ''; }); resumenCliente();
-    S.fotos = []; pintarFotos(); S.files = []; S.hecho = {}; S.incluir = false; S.tipo = 'parte'; S.docActual = 'parte';
+    S.fotos = []; pintarFotos(); S.files = []; S.hecho = {}; S.extra = ''; S.orden = null; S.tipo = 'parte'; S.docActual = 'parte';
     msg('msgPdf', '', ''); msg('msgDoc', '', ''); $('fallback').innerHTML = ''; pintarOpcionesDoc(); ir(1);
   });
 

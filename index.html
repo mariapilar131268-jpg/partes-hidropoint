@@ -59,6 +59,7 @@
   .hoja { position:relative; width:100%; background:#fff; } .hoja canvas { display:block; width:100%; height:auto; }
   .hot { position:absolute; border:1.5px dashed rgba(31,78,156,.55); background:rgba(31,78,156,.06); border-radius:3px; padding:0; margin:0; cursor:pointer; }
   .hot.falta { border-color:#c98a00; background:rgba(255,217,74,.38); }
+  .hot.marcada { border:2px solid #1b7a3a; background:rgba(27,122,58,.16); }
   .hot.sel { border:2px solid var(--azul); background:rgba(31,78,156,.18); }
   .sombra { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:29; display:none; } .sombra.on { display:block; }
   .hoja-edit { position:fixed; left:0; right:0; top:0; z-index:30; background:#fff; border-radius:0 0 18px 18px; box-shadow:0 10px 30px rgba(0,0,0,.3); padding:calc(12px + env(safe-area-inset-top)) 14px 14px; max-height:88vh; overflow:auto; display:none; }
@@ -103,7 +104,8 @@
   <div class="card">
     <h2>¿Qué documento se rellena?</h2>
     <div id="opcionesDoc"></div>
-    <label class="opcion" id="opParte"><input type="checkbox" id="incluirParte"><span>Añadir también nuestro parte<small>Opcional: lo decides tú.</small></span></label>
+    <h2 style="margin-top:14px">¿Rellenar también otro documento? (opcional)</h2>
+    <div id="opcionesExtra"></div>
     <div id="msgDoc"></div>
   </div>
   <button class="btn" id="to2" type="button">Siguiente: rellenar el parte →</button>
@@ -139,7 +141,7 @@
   <div id="msg4"></div>
   <div class="card">
     <h2>Correo a Girona</h2>
-    <div class="campo" style="display:none"><label>Para</label><input id="para" inputmode="email"></div>
+    <div class="campo"><label>Para</label><input id="para" inputmode="email"></div>
     <div class="campo"><label>Asunto</label><div class="asunto" id="asunto"></div></div>
     <div class="campo"><label>Mensaje</label><textarea id="cuerpo" style="min-height:140px"></textarea></div>
     <div class="nota" id="resumenAdj"></div>
@@ -173,10 +175,6 @@
     <h2>Mis datos (solo la primera vez)</h2>
     <p class="nota">Estos datos quedan rellenos solos en todos los documentos.</p>
     <div class="campo"><label>Nombre y apellidos de Pedro</label><input id="aNombre" autocomplete="name"></div>
-    <div class="fila">
-      <div class="campo"><label>NIF</label><input id="aNif"></div>
-      <div class="campo"><label>Nº de código de profesional</label><input id="aCodigo" inputmode="numeric"></div>
-    </div>
     <div class="campo"><label>Ciudad donde se firma</label><input id="aLugar" placeholder="Barcelona"></div>
     <div class="campo" style="display:none"><input id="aEmail"></div>
     <label style="font-size:13px;color:var(--gris)">Firma de Pedro (opcional: si no la pones, la firma en cada parte delante del cliente)</label>

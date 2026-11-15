@@ -9,7 +9,7 @@ PARTES HIDRO POINT - cómo ponerlo en marcha (se hace una sola vez)
 2) En el iPhone de Pedro
    - Abrir esa dirección en Safari.
    - Compartir -> "Añadir a pantalla de inicio". Se queda como una aplicación más.
-   - La primera vez pide "Mis datos": nombre, NIF, nº de código de profesional, ciudad, correo de Girona y su firma
+   - La primera vez pide "Mis datos": nombre, ciudad y (opcional) su firma
      (se guardan en su móvil y salen rellenos solos en todos los documentos).
 
 3) Cada servicio
