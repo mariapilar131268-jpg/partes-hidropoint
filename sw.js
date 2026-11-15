@@ -1,5 +1,5 @@
 // Guarda la aplicación en el móvil para que funcione también sin cobertura.
-const V = 'partes-v2';
+const V = 'partes-v4';
 const FICHEROS = ['./', 'index.html', 'app.js', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png',
   'lib/pdf.min.js', 'lib/pdf.worker.min.js', 'lib/pdf-lib.min.js', 'lib/parse.js', 'lib/hots.js', 'lib/fill.js',
   'templates/inter.pdf', 'templates/generali.pdf', 'templates/iris.pdf', 'templates/parte.pdf'];

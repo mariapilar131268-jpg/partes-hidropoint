@@ -139,7 +139,7 @@
   <div id="msg4"></div>
   <div class="card">
     <h2>Correo a Girona</h2>
-    <div class="campo"><label>Para</label><input id="para" inputmode="email"></div>
+    <div class="campo" style="display:none"><label>Para</label><input id="para" inputmode="email"></div>
     <div class="campo"><label>Asunto</label><div class="asunto" id="asunto"></div></div>
     <div class="campo"><label>Mensaje</label><textarea id="cuerpo" style="min-height:140px"></textarea></div>
     <div class="nota" id="resumenAdj"></div>
@@ -178,8 +178,8 @@
       <div class="campo"><label>Nº de código de profesional</label><input id="aCodigo" inputmode="numeric"></div>
     </div>
     <div class="campo"><label>Ciudad donde se firma</label><input id="aLugar" placeholder="Barcelona"></div>
-    <div class="campo"><label>Correo de Girona (destino)</label><input id="aEmail" inputmode="email"></div>
-    <label style="font-size:13px;color:var(--gris)">Firma de Pedro</label>
+    <div class="campo" style="display:none"><input id="aEmail"></div>
+    <label style="font-size:13px;color:var(--gris)">Firma de Pedro (opcional: si no la pones, la firma en cada parte delante del cliente)</label>
     <canvas id="padPedro" class="firma"></canvas>
     <button class="btn sec" id="borrarPedro" type="button">Borrar firma</button>
     <div id="msgAjustes"></div>

@@ -20,3 +20,6 @@ PARTES HIDRO POINT - cómo ponerlo en marcha (se hace una sola vez)
      y comprobar que el asunto es "registro - expediente" (queda copiado por si hay que pegarlo).
 
 Los datos del cliente y las fotos se procesan en el propio móvil; no se suben a ningún servidor.
+
+
+NOTA: la firma de Pedro en "Mis datos" es opcional. Si no la guarda, la firma en pantalla en cada parte (casilla "Firma del tecnico") delante del cliente. El correo de Girona va fijo y no se muestra.

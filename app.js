@@ -16,7 +16,7 @@
   function nuevoD() {
     return { registro: '', expediente: '', compania: '', aseguradora: '', poliza: '', nombre: '', direccion: '', cp: '', poblacion: '', telefono: '', telefono2: '', nif: '',
       descripcion: '', emailCliente: '', fecha: '', horaIni: '', horaFin: '', realizados: '', pendientes: '', causa: '', pagoPor: '', provincia: '',
-      consentimiento: false, refSiniestro: '', firmaNombre: '', firmaDni: '', iva: ['NC', 'NC', 'NC'], sigCliente: null };
+      consentimiento: false, refSiniestro: '', firmaNombre: '', firmaDni: '', iva: ['NC', 'NC', 'NC'], sigCliente: null, sigPedro: null };
   }
   const S = { tipo: 'parte', incluir: false, fotos: [], files: [], tplCache: {}, hecho: {}, ajustes: {}, d: nuevoD(), docActual: 'parte', hotIdx: -1, zoom: false };
 
@@ -35,7 +35,7 @@
   function get(k) { if (k.indexOf('iva:') === 0) return S.d.iva[+k.slice(4)]; return S.d[k]; }
   function set(k, v) { if (k.indexOf('iva:') === 0) S.d.iva[+k.slice(4)] = v; else S.d[k] = v; }
   function vacio(fl) {
-    if (fl.kind === 'sig') return !S.d.sigCliente;
+    if (fl.kind === 'sig') return fl.k === 'sigPedro' ? !(S.d.sigPedro || S.ajustes.sig) : !S.d[fl.k];
     if (fl.kind === 'check' || fl.kind === 'radio') return false;
     return !String(get(fl.k) == null ? '' : get(fl.k)).trim();
   }
@@ -95,7 +95,7 @@
   /* ---------- ajustes (modal) ---------- */
   function abrirAjustes() {
     $('aNombre').value = S.ajustes.nombre || ''; $('aNif').value = S.ajustes.nif || ''; $('aCodigo').value = S.ajustes.codigo || '';
-    $('aLugar').value = S.ajustes.lugar || ''; $('aEmail').value = S.ajustes.email || DEFAULT_EMAIL;
+    $('aLugar').value = S.ajustes.lugar || '';
     $('modalAjustes').classList.add('on');
     setTimeout(() => { padPedro.resize(); padPedro.set(S.ajustes.sig || null); }, 40);
   }
@@ -104,10 +104,8 @@
     const sig = padPedro.png(), fallos = [];
     if (!$('aNombre').value.trim()) fallos.push('Escribe el nombre de Pedro.');
     if (!$('aLugar').value.trim()) fallos.push('Escribe la ciudad donde se firma.');
-    if (!/\S+@\S+\.\S+/.test($('aEmail').value)) fallos.push('El correo de Girona no parece correcto.');
-    if (!sig) fallos.push('Falta la firma de Pedro.');
     if (fallos.length) return msg('msgAjustes', 'error', fallos);
-    S.ajustes = { nombre: $('aNombre').value.trim(), nif: $('aNif').value.trim(), codigo: $('aCodigo').value.trim(), lugar: $('aLugar').value.trim(), email: $('aEmail').value.trim(), sig };
+    S.ajustes = { nombre: $('aNombre').value.trim(), nif: $('aNif').value.trim(), codigo: $('aCodigo').value.trim(), lugar: $('aLugar').value.trim(), email: DEFAULT_EMAIL, sig };
     guardarAjustes(S.ajustes); msg('msgAjustes', '', ''); $('modalAjustes').classList.remove('on');
     if ($('s2').classList.contains('on')) pedirRender(0);
   });
@@ -183,7 +181,7 @@
     if (!d.firmaNombre) d.firmaNombre = d.nombre;
     if (!d.firmaDni) d.firmaDni = d.nif;
     if (!d.fecha) d.fecha = hoyIso();
-    if (!S.ajustes.sig || !S.ajustes.nombre) { abrirAjustes(); return; }
+    if (!S.ajustes.nombre) { abrirAjustes(); return; }
     S.docActual = docsActivos()[0]; S.hecho[1] = true; ir(2);
   });
   function hoyIso() { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
@@ -202,7 +200,7 @@
   }
   function datos() {
     return Object.assign({}, S.d, { iva: S.d.iva.slice(),
-      sigPedro: S.ajustes.sig || null,
+      sigPedro: S.d.sigPedro || S.ajustes.sig || null,
       pedro: { nombre: S.ajustes.nombre || '', nif: S.ajustes.nif || '', codigo: S.ajustes.codigo || '', lugar: S.ajustes.lugar || '' } });
   }
 
@@ -244,7 +242,7 @@
   window.addEventListener('resize', () => pedirRender(250));
 
   /* ---------- editor de casilla ---------- */
-  let padSheet = null;
+  let padSheet = null, padKey = 'sigCliente';
   function crearControl(fl) {
     const w = document.createElement('div'); w.className = 'campo';
     const lab = document.createElement('label'); lab.textContent = fl.label;
@@ -252,8 +250,9 @@
       const cv = document.createElement('canvas'); cv.className = 'firma'; cv.id = 'padSheet';
       const bb = document.createElement('button'); bb.type = 'button'; bb.className = 'btn sec'; bb.textContent = 'Borrar firma';
       w.append(lab, cv, bb);
-      setTimeout(() => { padSheet = Pad(cv, '#0a1a6b'); padSheet.resize(); padSheet.set(S.d.sigCliente); }, 40);
-      bb.addEventListener('click', () => { if (padSheet) padSheet.clear(); S.d.sigCliente = null; pedirRender(); });
+      setTimeout(() => { padSheet = Pad(cv, '#0a1a6b'); padSheet.resize(); padSheet.set(S.d[fl.k] || (fl.k === 'sigPedro' ? S.ajustes.sig : null)); }, 40);
+      padKey = fl.k;
+      bb.addEventListener('click', () => { if (padSheet) padSheet.clear(); S.d[fl.k] = null; pedirRender(); });
       return w;
     }
     if (fl.kind === 'radio') {
@@ -286,7 +285,7 @@
     const primero = c.querySelector('input,textarea'); if (primero && primero.type !== 'date') { try { primero.focus(); } catch (e) { } }
     colocarHots();
   }
-  function confirmarFirma() { if (padSheet) { const p = padSheet.png(); if (p) S.d.sigCliente = p; padSheet.destroy(); padSheet = null; } }
+  function confirmarFirma() { if (padSheet) { const p = padSheet.png(); if (p) S.d[padKey] = p; padSheet.destroy(); padSheet = null; } }
   function cerrarEditor(render_) {
     confirmarFirma();
     $('editor').classList.remove('on'); $('sombra').classList.remove('on'); S.hotIdx = -1;
@@ -370,10 +369,10 @@
   let generando = 0;
   async function prepararEnvio() {
     const turno = ++generando; msg('msg4', '', '');
-    $('para').value = $('para').value || S.ajustes.email || DEFAULT_EMAIL;
+    $('para').value = DEFAULT_EMAIL;
     $('vistas').innerHTML = '<p class="nota">Preparando…</p>'; $('bEnviar').disabled = true; $('fallback').innerHTML = '';
     const f = problemas();
-    if (!S.ajustes.sig || !S.ajustes.nombre) f.push('Faltan «Mis datos» (nombre y firma de Pedro). Pulsa ⚙ arriba.');
+    if (!S.ajustes.nombre) f.push('Faltan «Mis datos» (nombre de Pedro). Pulsa ⚙ arriba.');
     if (f.length) { msg('msg4', 'error', f); $('vistas').innerHTML = ''; return; }
     try {
       const g = await generar(); if (turno !== generando) return;
@@ -423,7 +422,7 @@
 
   /* ---------- arranque ---------- */
   pintarOpcionesDoc();
-  if (!S.ajustes.sig || !S.ajustes.nombre) abrirAjustes();
+  if (!S.ajustes.nombre) abrirAjustes();
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) { navigator.serviceWorker.register('sw.js').catch(() => { }); }
   window.__hp = { S, generar, datos, docsActivos };
 })();
