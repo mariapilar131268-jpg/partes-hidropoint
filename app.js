@@ -107,12 +107,16 @@
     if (fallos.length) return msg('msgAjustes', 'error', fallos);
     S.ajustes = { nombre: $('aNombre').value.trim(), lugar: $('aLugar').value.trim(), email: DEFAULT_EMAIL, sig };
     guardarAjustes(S.ajustes); msg('msgAjustes', '', ''); $('modalAjustes').classList.remove('on');
+    ponerLugar();
     if ($('s2').classList.contains('on')) pedirRender(0);
   });
 
   /* ---------- paso 1: leer la orden de trabajo (solo lectura) ---------- */
   const ids1 = ['registro', 'expediente', 'compania', 'aseguradora'];
   ids1.forEach(k => $(k).addEventListener('input', () => { S.d[k] = $(k).value.trim(); }));
+  // población donde se firma: sale de «Mis datos» pero se puede cambiar en cada parte
+  function ponerLugar() { if (!S.d.lugar) S.d.lugar = S.ajustes.lugar || ''; $('lugar').value = S.d.lugar; }
+  $('lugar').addEventListener('input', () => { S.d.lugar = $('lugar').value.trim(); });
 
   function resumenCliente() {
     const d = S.d; const l = [];
@@ -134,7 +138,7 @@
       ['registro', 'expediente', 'compania', 'aseguradora', 'poliza', 'nombre', 'direccion', 'cp', 'poblacion', 'nif', 'descripcion'].forEach(k => { nd[k] = r[k] || ''; });
       nd.telefono = (r.telefonos || [])[0] || ''; nd.telefono2 = (r.telefonos || [])[1] || '';
       if (r.fechaServicio) { const m = r.fechaServicio.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) nd.fecha = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }
-      S.d = nd; S.orden = ordenFile; ids1.forEach(k => { $(k).value = nd[k]; }); resumenCliente();
+      S.d = nd; S.orden = ordenFile; ids1.forEach(k => { $(k).value = nd[k]; }); ponerLugar(); resumenCliente();
       const falta1 = ['registro', 'expediente', 'nombre'].filter(k => !r[k]);
       if (falta1.length) msg('msgPdf', 'aviso', 'He leído la orden, pero no encuentro: ' + falta1.join(', ') + '. Complétalo a mano.');
       else msg('msgPdf', 'bien', `Orden leída: parte ${r.registro}, expediente ${r.expediente}.`);
@@ -142,7 +146,7 @@
     } catch (e) { console.error(e); msg('msgPdf', 'error', 'No he podido leer ese PDF. Puedes rellenar los datos a mano.'); }
   }
   $('fPdf').addEventListener('change', (e) => { if (e.target.files[0]) leerPdf(e.target.files[0]); e.target.value = ''; });
-  $('bManual').addEventListener('click', () => { msg('msgPdf', 'aviso', 'Modo manual: escribe el registro y el expediente; el resto se rellena en el documento.'); $('registro').focus(); });
+  $('bManual').addEventListener('click', () => { ponerLugar(); msg('msgPdf', 'aviso', 'Modo manual: escribe el registro y el expediente; el resto se rellena en el documento.'); $('registro').focus(); });
   ['compania', 'aseguradora'].forEach(k => $(k).addEventListener('change', elegirTipoAuto));
 
   function tipoAuto() {
@@ -188,7 +192,7 @@
     if (!d.firmaDni) d.firmaDni = d.nif;
     if (!d.fecha) d.fecha = hoyIso();
     if (!S.ajustes.nombre) { abrirAjustes(); return; }
-    if (!d.lugar) d.lugar = S.ajustes.lugar || '';
+    if (!d.lugar) d.lugar = S.ajustes.lugar || ''; $('lugar').value = d.lugar;
     S.docActual = docsActivos()[0]; S.hecho[1] = true; ir(2);
   });
   function hoyIso() { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
@@ -429,13 +433,14 @@
   }
   $('bNuevo').addEventListener('click', () => {
     if (!confirm('¿Empezar un parte nuevo? Se borrarán los datos de este.')) return;
-    S.d = nuevoD(); ids1.forEach(k => { $(k).value = ''; }); resumenCliente();
+    S.d = nuevoD(); ids1.forEach(k => { $(k).value = ''; }); ponerLugar(); resumenCliente();
     S.fotos = []; pintarFotos(); S.files = []; S.hecho = {}; S.extra = ''; S.orden = null; S.tipo = 'parte'; S.docActual = 'parte';
     msg('msgPdf', '', ''); msg('msgDoc', '', ''); $('fallback').innerHTML = ''; pintarOpcionesDoc(); ir(1);
   });
 
   /* ---------- arranque ---------- */
   pintarOpcionesDoc();
+  ponerLugar();
   if (!S.ajustes.nombre) abrirAjustes();
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) { navigator.serviceWorker.register('sw.js').catch(() => { }); }
   window.__hp = { S, generar, datos, docsActivos };
