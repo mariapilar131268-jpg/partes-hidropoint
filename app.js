@@ -4,6 +4,7 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
   const $ = (id) => document.getElementById(id);
   const DEFAULT_EMAIL = 'serveis@hidropointbarcelona.com';
+  const APP_VERSION = 'v7'; // debe coincidir con version.json
 
   const DOCS = {
     inter: { nombre: 'Hoja de encargo v2 (Inter Partner)', tpl: 'templates/inter.pdf', fich: 'hoja_encargo_inter', fn: 'fillInter', corto: 'Hoja Inter' },
@@ -443,5 +444,24 @@
   ponerLugar();
   if (!S.ajustes.nombre) abrirAjustes();
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) { navigator.serviceWorker.register('sw.js').catch(() => { }); }
+  /* ---------- aviso de versión nueva ---------- */
+  $('verApp').textContent = 'Versión de la app: ' + APP_VERSION;
+  async function hayVersionNueva() {
+    try {
+      const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+      const v = (await r.json()).version;
+      if (v && v !== APP_VERSION) $('avisoVersion').classList.remove('oculto');
+    } catch (e) { /* sin cobertura: no se avisa */ }
+  }
+  $('bActualizar').addEventListener('click', async () => {
+    if (!confirm('Se recargará la app y se perderá el parte que tengas a medias (los datos de «Mis datos» se mantienen). ¿Actualizar ahora?')) return;
+    try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.unregister())); const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } catch (e) { }
+    location.reload();
+  });
+  if (/^https?:$/.test(location.protocol)) {
+    setTimeout(hayVersionNueva, 2500);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') hayVersionNueva(); });
+    window.addEventListener('online', hayVersionNueva);
+  }
   window.__hp = { S, generar, datos, docsActivos };
 })();

@@ -67,9 +67,12 @@
   .hoja-edit h3 { margin:0 0 10px; font-size:17px; }
   .hoja-edit .acciones { display:flex; gap:8px; margin-top:6px; } .hoja-edit .acciones .btn { margin-top:0; }
   .grande { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; } .grande button { border:1.5px solid var(--borde); background:#fff; border-radius:12px; padding:14px 6px; font-size:16px; } .grande button.on { border-color:var(--azul); background:var(--azul2); font-weight:700; color:var(--azul); }
+  #avisoVersion { position:sticky; top:0; z-index:6; background:#8a5a00; color:#fff; padding:10px 14px; display:flex; gap:10px; align-items:center; font-size:15px; font-weight:600; }
+  #avisoVersion span { flex:1; } #avisoVersion button { background:#fff; color:#8a5a00; border:0; border-radius:10px; padding:9px 14px; font-size:15px; font-weight:700; }
 </style>
 </head>
 <body>
+<div id="avisoVersion" class="oculto"><span>Hay una versión nueva de la app.</span><button id="bActualizar" type="button">Actualizar</button></div>
 <header>
   <h1>Partes Hidro Point</h1>
   <button id="bAjustes" type="button">⚙ Mis datos</button>
@@ -175,6 +178,7 @@
   <div class="card">
     <h2>Mis datos (solo la primera vez)</h2>
     <p class="nota">Estos datos quedan rellenos solos en todos los documentos.</p>
+    <p class="nota" id="verApp"></p>
     <div class="campo"><label>Nombre y apellidos de Pedro</label><input id="aNombre" autocomplete="name"></div>
     <div class="campo"><label>Ciudad donde se firma</label><input id="aLugar" placeholder="Barcelona"></div>
     <div class="campo" style="display:none"><input id="aEmail"></div>
