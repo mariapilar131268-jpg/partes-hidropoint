@@ -4,7 +4,7 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
   const $ = (id) => document.getElementById(id);
   const DEFAULT_EMAIL = 'serveis@hidropointbarcelona.com';
-  const APP_VERSION = 'v7'; // debe coincidir con version.json
+  const APP_VERSION = 'v8'; // debe coincidir con version.json
 
   const DOCS = {
     inter: { nombre: 'Hoja de encargo v2 (Inter Partner)', tpl: 'templates/inter.pdf', fich: 'hoja_encargo_inter', fn: 'fillInter', corto: 'Hoja Inter' },
@@ -17,7 +17,7 @@
   function nuevoD() {
     return { registro: '', expediente: '', compania: '', aseguradora: '', poliza: '', nombre: '', direccion: '', cp: '', poblacion: '', telefono: '', telefono2: '', nif: '',
       descripcion: '', emailCliente: '', fecha: '', horaIni: '', horaFin: '', realizados: '', pendientes: '', causa: '', pagoPor: '', provincia: '',
-      consentimiento: false, refSiniestro: '', firmaNombre: '', firmaDni: '', iva: ['NC', 'NC', 'NC'], sigCliente: null, sigPedro: null, lugar: '' };
+      consentimiento: false, refSiniestro: '', firmaNombre: '', firmaDni: '', iva: ['NC', 'NC', 'NC'], sigCliente: null, sigPedro: null, lugar: '', repNombre: '', repNif: '', sigRep: null };
   }
   const S = { tipo: 'parte', extra: '', orden: null, fotos: [], files: [], tplCache: {}, hecho: {}, ajustes: {}, d: nuevoD(), docActual: 'parte', hotIdx: -1, zoom: false };
 
@@ -398,7 +398,7 @@
       if (S.orden) S.files.push(S.orden); // la orden de trabajo original, tal cual se recibió
       S.fotos.forEach((b, i) => S.files.push(new File([b], `${g.d.registro || 'parte'}_foto_${i + 1}.jpg`, { type: 'image/jpeg' })));
       $('asunto').textContent = asuntoDe(g.d); $('cuerpo').value = cuerpoDe(g.d, g.salida);
-      $('resumenAdj').textContent = 'Se adjuntará: ' + S.files.map(x => x.name).join(', ');
+      $('resumenAdj').textContent = `Se adjuntarán ${S.files.length} archivo${S.files.length === 1 ? '' : 's'}: ` + S.files.map(x => x.name).join(', ');
       if (g.avisos.length) msg('msg4', 'aviso', g.avisos);
       $('bEnviar').disabled = false; await pintarVistas(g.salida, turno);
     } catch (e) { console.error(e); msg('msg4', 'error', 'No he podido preparar los documentos: ' + (e.message || e)); }
