@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Partes">
+<meta name="theme-color" content="#1f4e9c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Partes Hidro Point</title>
+<style>
+  :root { --azul:#1f4e9c; --azul2:#e8eefa; --ok:#1c7c3c; --mal:#b3261e; --gris:#5b6472; --borde:#cdd5e2; --amarillo:#ffd94a; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body { margin:0; overflow-x:hidden; max-width:100%; background:#f3f5f9; color:#1a1f2b; font:16px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { background:var(--azul); color:#fff; padding:calc(10px + env(safe-area-inset-top)) 14px 10px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:5; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header button { background:rgba(255,255,255,.18); color:#fff; border:0; border-radius:10px; padding:8px 12px; font-size:15px; }
+  nav.pasos { display:flex; background:#fff; border-bottom:1px solid var(--borde); position:sticky; top:calc(48px + env(safe-area-inset-top)); z-index:4; }
+  nav.pasos button { flex:1; border:0; background:none; padding:10px 2px; font-size:13px; color:var(--gris); border-bottom:3px solid transparent; }
+  nav.pasos button b { display:block; font-size:16px; }
+  nav.pasos button.on { color:var(--azul); border-bottom-color:var(--azul); font-weight:600; }
+  nav.pasos button.hecho b::after { content:" ✓"; color:var(--ok); }
+  main { padding:14px 14px calc(30px + env(safe-area-inset-bottom)); max-width:760px; margin:0 auto; }
+  section { display:none; } section.on { display:block; }
+  .card { background:#fff; border:1px solid var(--borde); border-radius:14px; padding:14px; margin-bottom:14px; }
+  .card h2 { margin:0 0 10px; font-size:17px; }
+  .campo { margin-bottom:10px; } .campo label { display:block; font-size:13px; color:var(--gris); margin-bottom:3px; }
+  input,textarea,select { width:100%; min-width:0; max-width:100%; -webkit-appearance:none; appearance:none; font-size:16px; padding:10px; border:1px solid var(--borde); border-radius:10px; background:#fff; color:inherit; font-family:inherit; }
+  textarea { min-height:120px; resize:vertical; }
+  .fila > * { min-width:0; } .fila { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btn { display:block; width:100%; border:0; border-radius:12px; padding:15px; font-size:17px; font-weight:600; background:var(--azul); color:#fff; margin-top:8px; }
+  .btn.sec { background:var(--azul2); color:var(--azul); } .btn.ok { background:var(--ok); } .btn.peq { display:inline-block; width:auto; padding:8px 12px; font-size:14px; margin:0; }
+  .btn[disabled] { opacity:.45; }
+  .archivo { position:relative; overflow:hidden; } .archivo input { position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; }
+  .aviso { background:#fff6dd; border:1px solid #ecd78f; border-radius:10px; padding:10px; font-size:14px; margin:8px 0; }
+  .error { background:#fdeceb; border:1px solid #f0b7b3; color:var(--mal); border-radius:10px; padding:10px; font-size:14px; margin:8px 0; }
+  .bien { background:#e8f5ec; border:1px solid #b6dcc1; color:#17562c; border-radius:10px; padding:10px; font-size:14px; margin:8px 0; }
+  .nota { font-size:13px; color:var(--gris); margin:4px 0 8px; }
+  .firma { border:2px dashed #9aa8c4; border-radius:12px; background:#fff; touch-action:none; width:100%; height:200px; display:block; }
+  .opcion { display:flex; gap:10px; align-items:flex-start; padding:10px; border:1px solid var(--borde); border-radius:10px; margin-bottom:8px; background:#fff; }
+  .opcion input { -webkit-appearance:auto; appearance:auto; width:22px; height:22px; margin:2px 0 0; flex:none; } .opcion span { flex:1; } .opcion small { display:block; color:var(--gris); }
+  .opcion.sel { border-color:var(--azul); background:var(--azul2); }
+  .fotos { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+  .foto { position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; background:#ddd; } .foto img { width:100%; height:100%; object-fit:cover; display:block; }
+  .foto button { position:absolute; top:4px; right:4px; width:30px; height:30px; border-radius:50%; border:0; background:rgba(0,0,0,.65); color:#fff; font-size:16px; }
+  .vista { width:100%; border:1px solid var(--borde); border-radius:8px; margin-bottom:6px; background:#fff; display:block; }
+  .asunto { font-size:20px; font-weight:700; word-break:break-all; color:var(--azul); }
+  .modal { position:fixed; inset:0; background:#f3f5f9; z-index:20; overflow:auto; padding:calc(14px + env(safe-area-inset-top)) 14px 30px; display:none; } .modal.on { display:block; }
+  .oculto { display:none !important; }
+  a.dl { display:block; padding:10px; border:1px solid var(--borde); border-radius:10px; margin-bottom:6px; color:var(--azul); font-weight:600; text-decoration:none; background:#fff; }
+
+  /* ---- documento sobre el que se escribe ---- */
+  .tabsdoc { display:flex; gap:6px; margin-bottom:8px; } .tabsdoc button { flex:1; border:1px solid var(--borde); background:#fff; border-radius:10px; padding:9px 6px; font-size:14px; color:var(--gris); } .tabsdoc button.on { background:var(--azul); color:#fff; border-color:var(--azul); font-weight:600; }
+  .barra { display:flex; gap:8px; align-items:center; margin-bottom:8px; } .barra .estado { flex:1; font-size:14px; font-weight:600; }
+  .barra .estado.mal { color:#8a5a00; } .barra .estado.bien2 { color:var(--ok); }
+  .visor { overflow:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--borde); border-radius:10px; background:#e9edf4; max-height:none; }
+  .hoja { position:relative; width:100%; background:#fff; } .hoja canvas { display:block; width:100%; height:auto; }
+  .hot { position:absolute; border:1.5px dashed rgba(31,78,156,.55); background:rgba(31,78,156,.06); border-radius:3px; padding:0; margin:0; cursor:pointer; }
+  .hot.falta { border-color:#c98a00; background:rgba(255,217,74,.38); }
+  .hot.sel { border:2px solid var(--azul); background:rgba(31,78,156,.18); }
+  .sombra { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:29; display:none; } .sombra.on { display:block; }
+  .hoja-edit { position:fixed; left:0; right:0; top:0; z-index:30; background:#fff; border-radius:0 0 18px 18px; box-shadow:0 10px 30px rgba(0,0,0,.3); padding:calc(12px + env(safe-area-inset-top)) 14px 14px; max-height:88vh; overflow:auto; display:none; }
+  .hoja-edit.on { display:block; }
+  .hoja-edit h3 { margin:0 0 10px; font-size:17px; }
+  .hoja-edit .acciones { display:flex; gap:8px; margin-top:6px; } .hoja-edit .acciones .btn { margin-top:0; }
+  .grande { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; } .grande button { border:1.5px solid var(--borde); background:#fff; border-radius:12px; padding:14px 6px; font-size:16px; } .grande button.on { border-color:var(--azul); background:var(--azul2); font-weight:700; color:var(--azul); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Partes Hidro Point</h1>
+  <button id="bAjustes" type="button">⚙ Mis datos</button>
+</header>
+<nav class="pasos" id="pasos">
+  <button data-p="1" class="on"><b>1</b>Orden</button>
+  <button data-p="2"><b>2</b>Parte</button>
+  <button data-p="3"><b>3</b>Fotos</button>
+  <button data-p="4"><b>4</b>Enviar</button>
+</nav>
+
+<main>
+<!-- ================= PASO 1 ================= -->
+<section id="s1" class="on">
+  <div class="card">
+    <h2>1. Orden de trabajo</h2>
+    <p class="nota">Abre el correo de Girona, pulsa sobre el PDF adjunto → <b>Compartir → Guardar en Archivos</b>. Después elígelo aquí. La orden solo se lee: no se escribe nada en ella.</p>
+    <div class="btn archivo">📄 Elegir el PDF de la orden<input type="file" id="fPdf" accept="application/pdf,.pdf"></div>
+    <button class="btn sec" id="bManual" type="button">Rellenar a mano (sin PDF)</button>
+    <div id="msgPdf"></div>
+  </div>
+
+  <div class="card">
+    <h2>Datos de la orden</h2>
+    <div class="campo"><label>Nº de parte (registro)</label><input id="registro" inputmode="numeric"></div>
+    <div class="campo"><label>Expediente</label><input id="expediente"></div>
+    <div class="campo"><label>Compañía</label><input id="compania"></div>
+    <div class="campo"><label>Aseguradora</label><input id="aseguradora"></div>
+    <p class="nota" id="resumenCliente"></p>
+  </div>
+
+  <div class="card">
+    <h2>¿Qué documento se rellena?</h2>
+    <div id="opcionesDoc"></div>
+    <label class="opcion" id="opParte"><input type="checkbox" id="incluirParte"><span>Añadir también nuestro parte<small>Opcional: lo decides tú.</small></span></label>
+    <div id="msgDoc"></div>
+  </div>
+  <button class="btn" id="to2" type="button">Siguiente: rellenar el parte →</button>
+</section>
+
+<!-- ================= PASO 2 ================= -->
+<section id="s2">
+  <div class="tabsdoc" id="tabsDoc"></div>
+  <div class="barra">
+    <div class="estado" id="estado"></div>
+    <button class="btn sec peq" id="bSig" type="button">Siguiente vacío</button>
+    <button class="btn sec peq" id="bZoom" type="button">🔍 Ampliar</button>
+  </div>
+  <p class="nota">Toca una casilla del documento para escribir. En amarillo, lo que falta. El cliente firma tocando su recuadro de firma.</p>
+  <div class="visor" id="visor"><div class="hoja" id="hoja"><canvas id="cvDoc"></canvas><div id="hots"></div></div></div>
+  <div id="msg2"></div>
+  <button class="btn" id="to3" type="button">Siguiente: fotos →</button>
+</section>
+
+<!-- ================= PASO 3 ================= -->
+<section id="s3">
+  <div class="card">
+    <h2>Fotos de la actuación</h2>
+    <div class="btn archivo">📷 Hacer o elegir fotos<input type="file" id="fFotos" accept="image/*" multiple></div>
+    <div class="fotos" id="rejilla"></div>
+    <p class="nota" id="notaFotos">Todavía no hay fotos.</p>
+  </div>
+  <button class="btn" id="to4" type="button">Siguiente: revisar y enviar →</button>
+</section>
+
+<!-- ================= PASO 4 ================= -->
+<section id="s4">
+  <div id="msg4"></div>
+  <div class="card">
+    <h2>Correo a Girona</h2>
+    <div class="campo"><label>Para</label><input id="para" inputmode="email"></div>
+    <div class="campo"><label>Asunto</label><div class="asunto" id="asunto"></div></div>
+    <div class="campo"><label>Mensaje</label><textarea id="cuerpo" style="min-height:140px"></textarea></div>
+    <div class="nota" id="resumenAdj"></div>
+  </div>
+  <button class="btn ok" id="bEnviar" type="button">✉ Enviar por correo</button>
+  <button class="btn sec" id="bCopiar" type="button">Copiar asunto</button>
+  <div id="fallback"></div>
+  <div class="card" style="margin-top:14px">
+    <h2>Así quedan los documentos</h2>
+    <div id="vistas"><p class="nota">Preparando…</p></div>
+  </div>
+  <p class="nota">Los datos del cliente y las fotos no salen de tu móvil hasta que tú envías el correo.</p>
+  <button class="btn sec" id="bNuevo" type="button">Empezar un parte nuevo</button>
+</section>
+</main>
+
+<!-- ================= EDITOR DE CASILLA ================= -->
+<div class="sombra" id="sombra"></div>
+<div class="hoja-edit" id="editor">
+  <h3 id="edTitulo"></h3>
+  <div id="edCampos"></div>
+  <div class="acciones">
+    <button class="btn sec" id="edSig" type="button">Siguiente vacío</button>
+    <button class="btn" id="edHecho" type="button">Hecho</button>
+  </div>
+</div>
+
+<!-- ================= AJUSTES ================= -->
+<div class="modal" id="modalAjustes">
+  <div class="card">
+    <h2>Mis datos (solo la primera vez)</h2>
+    <p class="nota">Estos datos quedan rellenos solos en todos los documentos.</p>
+    <div class="campo"><label>Nombre y apellidos de Pedro</label><input id="aNombre" autocomplete="name"></div>
+    <div class="fila">
+      <div class="campo"><label>NIF</label><input id="aNif"></div>
+      <div class="campo"><label>Nº de código de profesional</label><input id="aCodigo" inputmode="numeric"></div>
+    </div>
+    <div class="campo"><label>Ciudad donde se firma</label><input id="aLugar" placeholder="Barcelona"></div>
+    <div class="campo"><label>Correo de Girona (destino)</label><input id="aEmail" inputmode="email"></div>
+    <label style="font-size:13px;color:var(--gris)">Firma de Pedro</label>
+    <canvas id="padPedro" class="firma"></canvas>
+    <button class="btn sec" id="borrarPedro" type="button">Borrar firma</button>
+    <div id="msgAjustes"></div>
+    <button class="btn" id="guardarAjustes" type="button">Guardar</button>
+  </div>
+</div>
+
+<script src="lib/pdf.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
+<script src="lib/parse.js"></script>
+<script src="lib/hots.js"></script>
+<script src="lib/fill.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
