@@ -4,7 +4,7 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
   const $ = (id) => document.getElementById(id);
   const DEFAULT_EMAIL = 'serveis@hidropointbarcelona.com';
-  const APP_VERSION = 'v9'; // debe coincidir con version.json
+  const APP_VERSION = 'v12'; // debe coincidir con version.json
 
   const DOCS = {
     inter: { nombre: 'Hoja de encargo v2 (Inter Partner)', tpl: 'templates/inter.pdf', fich: 'hoja_encargo_inter', fn: 'fillInter', corto: 'Hoja Inter' },
@@ -151,7 +151,10 @@
   ['compania', 'aseguradora'].forEach(k => $(k).addEventListener('change', elegirTipoAuto));
 
   function tipoAuto() {
-    const t = (S.d.compania + ' ' + S.d.aseguradora).toLowerCase();
+    // El documento lo decide la COMPAÑÍA de la orden (p. ej. «INTER BCN»), no la aseguradora final.
+    // Solo si la compañía viene vacía se mira la aseguradora.
+    const t = ((S.d.compania || '').trim() || (S.d.aseguradora || '')).toLowerCase();
+    if (/santa\s*luc[ií]a|cajamar/.test(t)) return 'parte'; // de momento, solo el parte de Hidro Point
     if (/generali/.test(t)) return 'generali';
     if (/\biris\b/.test(t)) return 'iris';
     if (/inter/.test(t)) return 'inter';
