@@ -4,7 +4,7 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
   const $ = (id) => document.getElementById(id);
   const DEFAULT_EMAIL = 'serveis@hidropointbarcelona.com';
-  const APP_VERSION = 'v12'; // debe coincidir con version.json
+  const APP_VERSION = 'v13'; // debe coincidir con version.json
 
   const DOCS = {
     inter: { nombre: 'Hoja de encargo v2 (Inter Partner)', tpl: 'templates/inter.pdf', fich: 'hoja_encargo_inter', fn: 'fillInter', corto: 'Hoja Inter' },
@@ -19,7 +19,10 @@
       descripcion: '', emailCliente: '', fecha: '', horaIni: '', horaFin: '', realizados: '', pendientes: '', causa: '', pagoPor: '', provincia: '',
       consentimiento: false, refSiniestro: '', firmaNombre: '', firmaDni: '', iva: ['NC', 'NC', 'NC'], sigCliente: null, sigPedro: null, lugar: '', repNombre: '', repNif: '', sigRep: null };
   }
-  const S = { tipo: 'parte', extra: '', orden: null, fotos: [], files: [], tplCache: {}, hecho: {}, ajustes: {}, d: nuevoD(), docActual: 'parte', hotIdx: -1, zoom: false };
+  const S = { tipo: 'parte', extra: '', orden: null, fotos: [], files: [], tplCache: {}, hecho: {}, ajustes: {}, d: nuevoD(), docActual: 'parte', hotIdx: -1, zoom: false, firmas: {} };
+  // Las firmas son independientes en cada documento: S.firmas[documento][sigCliente|sigPedro|sigRep]
+  function firmaDe(doc, tipo) { const f = S.firmas[doc] && S.firmas[doc][tipo]; return f || (tipo === 'sigPedro' ? (S.ajustes.sig || null) : null); }
+  function ponerFirma(doc, tipo, png) { (S.firmas[doc] = S.firmas[doc] || {})[tipo] = png || null; }
 
   /* ---------- ajustes guardados en el móvil ---------- */
   function cargarAjustes() { try { return JSON.parse(localStorage.getItem('hp_ajustes') || '{}'); } catch (e) { return {}; } }
@@ -35,13 +38,13 @@
   /* ---------- acceso a los datos por clave ('iva:0' = casilla de IVA nº 1) ---------- */
   function get(k) { if (k.indexOf('iva:') === 0) return S.d.iva[+k.slice(4)]; return S.d[k]; }
   function set(k, v) { if (k.indexOf('iva:') === 0) S.d.iva[+k.slice(4)] = v; else S.d[k] = v; }
-  function vacio(fl) {
-    if (fl.kind === 'sig') return fl.k === 'sigPedro' ? !(S.d.sigPedro || S.ajustes.sig) : !S.d[fl.k];
+  function vacio(fl, doc) {
+    if (fl.kind === 'sig') return !firmaDe(doc || S.docActual, fl.k);
     if (fl.kind === 'check' || fl.kind === 'radio' || fl.kind === 'cruz') return false;
     return !String(get(fl.k) == null ? '' : get(fl.k)).trim();
   }
-  const falta = (h) => h.f.some(fl => fl.req && vacio(fl));
-  const faltaObligatorio = (h) => h.f.some(fl => fl.req === 'must' && vacio(fl));
+  const falta = (h, doc) => h.f.some(fl => fl.req && vacio(fl, doc));
+  const faltaObligatorio = (h, doc) => h.f.some(fl => fl.req === 'must' && vacio(fl, doc));
 
   /* ---------- pasos ---------- */
   function docsActivos() { return S.extra && S.extra !== S.tipo ? [S.tipo, S.extra] : [S.tipo]; }
@@ -139,7 +142,7 @@
       ['registro', 'expediente', 'compania', 'aseguradora', 'poliza', 'nombre', 'direccion', 'cp', 'poblacion', 'nif', 'descripcion'].forEach(k => { nd[k] = r[k] || ''; });
       nd.telefono = (r.telefonos || [])[0] || ''; nd.telefono2 = (r.telefonos || [])[1] || '';
       if (r.fechaServicio) { const m = r.fechaServicio.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) nd.fecha = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }
-      S.d = nd; S.orden = ordenFile; ids1.forEach(k => { $(k).value = nd[k]; }); ponerLugar(); resumenCliente();
+      S.d = nd; S.firmas = {}; S.orden = ordenFile; ids1.forEach(k => { $(k).value = nd[k]; }); ponerLugar(); resumenCliente();
       const falta1 = ['registro', 'expediente', 'nombre'].filter(k => !r[k]);
       if (falta1.length) msg('msgPdf', 'aviso', 'He leído la orden, pero no encuentro: ' + falta1.join(', ') + '. Complétalo a mano.');
       else msg('msgPdf', 'bien', `Orden leída: parte ${r.registro}, expediente ${r.expediente}.`);
@@ -213,9 +216,10 @@
     if (!S.tplCache[k]) { const r = await fetch(DOCS[k].tpl); if (!r.ok) throw new Error('No encuentro la plantilla ' + k); S.tplCache[k] = new Uint8Array(await r.arrayBuffer()); }
     return S.tplCache[k];
   }
-  function datos() {
+  function datos(doc) {
+    doc = doc || S.docActual;
     return Object.assign({}, S.d, { iva: S.d.iva.slice(),
-      sigPedro: S.d.sigPedro || S.ajustes.sig || null,
+      sigCliente: firmaDe(doc, 'sigCliente'), sigPedro: firmaDe(doc, 'sigPedro'), sigRep: firmaDe(doc, 'sigRep'),
       pedro: { nombre: S.ajustes.nombre || '', lugar: S.ajustes.lugar || '' } });
   }
 
@@ -227,7 +231,7 @@
     rendering = true;
     try {
       const k = S.docActual, base = await plantilla(k);
-      const r = await PartesFill[DOCS[k].fn](base.slice(), datos());
+      const r = await PartesFill[DOCS[k].fn](base.slice(), datos(k));
       const doc = await pdfjsLib.getDocument({ data: new Uint8Array(r.bytes) }).promise;
       const pg = await doc.getPage(1), vp0 = pg.getViewport({ scale: 1 });
       const wcss = $('hoja').clientWidth || 340, dpr = Math.min(2.5, Math.max(1, window.devicePixelRatio || 1));
@@ -253,7 +257,7 @@
     });
   }
   function estado() {
-    const hs = HOTS[S.docActual] || [], must = hs.filter(faltaObligatorio).length, soft = hs.filter(h => falta(h) && !faltaObligatorio(h)).length;
+    const hs = HOTS[S.docActual] || [], must = hs.filter(h => faltaObligatorio(h)).length, soft = hs.filter(h => falta(h) && !faltaObligatorio(h)).length;
     const e = $('estado');
     if (must) { e.textContent = `Faltan ${must} obligatorios`; e.className = 'estado mal'; }
     else if (soft) { e.textContent = `Listo (${soft} dato${soft > 1 ? 's' : ''} sin rellenar)`; e.className = 'estado bien2'; }
@@ -263,17 +267,18 @@
   window.addEventListener('resize', () => pedirRender(250));
 
   /* ---------- editor de casilla ---------- */
-  let padSheet = null, padKey = 'sigCliente';
+  let padSheet = null, padKey = 'sigCliente', padDoc = 'parte';
   function crearControl(fl) {
+    const doc = S.docActual;
     const w = document.createElement('div'); w.className = 'campo';
     const lab = document.createElement('label'); lab.textContent = fl.label;
     if (fl.kind === 'sig') {
       const cv = document.createElement('canvas'); cv.className = 'firma'; cv.id = 'padSheet';
       const bb = document.createElement('button'); bb.type = 'button'; bb.className = 'btn sec'; bb.textContent = 'Borrar firma';
       w.append(lab, cv, bb);
-      setTimeout(() => { padSheet = Pad(cv, '#0a1a6b'); padSheet.resize(); padSheet.set(S.d[fl.k] || (fl.k === 'sigPedro' ? S.ajustes.sig : null)); }, 40);
-      padKey = fl.k;
-      bb.addEventListener('click', () => { if (padSheet) padSheet.clear(); S.d[fl.k] = null; pedirRender(); });
+      setTimeout(() => { padSheet = Pad(cv, '#0a1a6b'); padSheet.resize(); padSheet.set(firmaDe(doc, fl.k)); }, 40);
+      padKey = fl.k; padDoc = doc;
+      bb.addEventListener('click', () => { if (padSheet) padSheet.clear(); ponerFirma(doc, fl.k, null); pedirRender(); });
       return w;
     }
     if (fl.kind === 'radio') {
@@ -306,7 +311,7 @@
     const primero = c.querySelector('input,textarea'); if (primero && primero.type !== 'date') { try { primero.focus(); } catch (e) { } }
     colocarHots();
   }
-  function confirmarFirma() { if (padSheet) { const p = padSheet.png(); if (p) S.d[padKey] = p; padSheet.destroy(); padSheet = null; } }
+  function confirmarFirma() { if (padSheet) { const p = padSheet.png(); if (p) ponerFirma(padDoc, padKey, p); padSheet.destroy(); padSheet = null; } }
   function cerrarEditor(render_) {
     confirmarFirma();
     $('editor').classList.remove('on'); $('sombra').classList.remove('on'); S.hotIdx = -1;
@@ -328,7 +333,7 @@
   function problemas() {
     const f = [];
     docsActivos().forEach(k => {
-      (HOTS[k] || []).forEach(h => h.f.forEach(fl => { if (fl.req === 'must' && vacio(fl)) { const t = `${docsActivos().length > 1 ? DOCS[k].corto + ': ' : ''}falta «${fl.label}»`; if (f.indexOf(t) < 0) f.push(t); } }));
+      (HOTS[k] || []).forEach(h => h.f.forEach(fl => { if (fl.req === 'must' && vacio(fl, k)) { const t = `${docsActivos().length > 1 ? DOCS[k].corto + ': ' : ''}falta «${fl.label}»`; if (f.indexOf(t) < 0) f.push(t); } }));
     });
     return f;
   }
@@ -366,9 +371,9 @@
   /* ---------- generar los documentos definitivos ---------- */
   function nombreFich(k, d) { return (d.registro || 'parte').replace(/[^\w-]+/g, '_') + '_' + DOCS[k].fich + '.pdf'; }
   async function generar() {
-    const d = datos(), salida = [], avisos = [];
+    const d = datos(docsActivos()[0]), salida = [], avisos = [];
     for (const k of docsActivos()) {
-      const r = await PartesFill[DOCS[k].fn]((await plantilla(k)).slice(), d);
+      const r = await PartesFill[DOCS[k].fn]((await plantilla(k)).slice(), datos(k));
       salida.push({ k, nombre: nombreFich(k, d), bytes: r.bytes });
       r.warnings.forEach(w => avisos.push(DOCS[k].nombre + ': ' + w));
     }
@@ -437,7 +442,7 @@
   }
   $('bNuevo').addEventListener('click', () => {
     if (!confirm('¿Empezar un parte nuevo? Se borrarán los datos de este.')) return;
-    S.d = nuevoD(); ids1.forEach(k => { $(k).value = ''; }); ponerLugar(); resumenCliente();
+    S.d = nuevoD(); S.firmas = {}; ids1.forEach(k => { $(k).value = ''; }); ponerLugar(); resumenCliente();
     S.fotos = []; pintarFotos(); S.files = []; S.hecho = {}; S.extra = ''; S.orden = null; S.tipo = 'parte'; S.docActual = 'parte';
     msg('msgPdf', '', ''); msg('msgDoc', '', ''); $('fallback').innerHTML = ''; pintarOpcionesDoc(); ir(1);
   });
