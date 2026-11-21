@@ -4,7 +4,7 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
   const $ = (id) => document.getElementById(id);
   const DEFAULT_EMAIL = 'serveis@hidropointbarcelona.com';
-  const APP_VERSION = 'v13'; // debe coincidir con version.json
+  const APP_VERSION = 'v14'; // debe coincidir con version.json
 
   const DOCS = {
     inter: { nombre: 'Hoja de encargo v2 (Inter Partner)', tpl: 'templates/inter.pdf', fich: 'hoja_encargo_inter', fn: 'fillInter', corto: 'Hoja Inter' },
